@@ -18,7 +18,12 @@ python upload.py -i /path/to/file/image.png -o new-image-name.png -f foldername
 ```
 If it run for the first time, it will show you an url to obtain key to create token to access Google drive. The script will auto create local server to intercept code to create token. 
 
-But if your script cannot connect to Google use `--noauth_local_webserver` in command line to force it to tell Google to display code that will let you copy it and paste to you script manually. Copy that link and open it in your browser. It'll ask you to login to your google account then ask for access to your google drive. After accept the permissions it will show a code then pass that code to your script and hit enter.
+But if your script cannot connect to Google use `--noauth_local_webserver` in command line to force it to tell Google to display code that will let you copy it and paste to you script manually. 
+```
+python upload.py --noauth_local_webserver -i /path/to/file/image.png -o new-image-name.png -f foldername
+```
+Copy that link and open it in your browser. It'll ask you to login to your google account then ask for access to your google drive. After accept the permissions it will show a code then pass that code to your script and hit enter.
+
 ![](https://developers.google.com/accounts/images/installedresult.png)
   
 It will save the credential and token to local folder. So, next time you call this script it will not ask for permission again. A file will start upload and show progress bar and speed. 
