@@ -7,6 +7,34 @@ import time
 from apiclient import errors as api_errors, http as api_http
 
 
+def get_file_data(service, filename, folder_id=None):
+    """
+    Search for filename in specific folder name in target account and return file data if match
+    :param service: gdrive api service
+    :param filename: name of file we want to search
+    :param folder_id: id of target folder name
+    :return:
+        file in gdrive that match condition or None
+    """
+    folder_id = None
+    file_data = None
+    # search for folder name
+    try:
+        if folder_id:
+            q = 'title="{}" and "{}" in parents'.format(filename, folder_id)
+        else:
+            q = 'title="{}"'.format(filename)
+
+        files = service.files().list(q=q).execute()
+        items = files.get('items', [])
+        if items:
+            file_data = items[0]
+    except api_errors.HttpError, error:
+        print('An error occurred: %s' % error)
+
+    return file_data
+
+
 def get_or_create_folder(service, folder_name):
     """
     Search for specific folder name in target account and create one if not exist
@@ -33,7 +61,6 @@ def get_or_create_folder(service, folder_name):
             folder_id = request['id']
     except api_errors.HttpError, error:
         print('An error occurred: %s' % error)
-
     return folder_id
 
 
@@ -67,7 +94,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None):
     response = None
 
     start_time = time.time()
-
+    print("Upload : ", input_file)
     try:
         # Loop to show upload progress and speed
         while response is None:
@@ -80,7 +107,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None):
                     status.total_size,
                     upload_speed), end='\r')
         print()
-        print("Upload Complete! -- {:,} seconds".format(time.time() - start_time))
+        print("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
         return file
     except api_errors.HttpError, error:
         print('An error occur: %s' % error)
