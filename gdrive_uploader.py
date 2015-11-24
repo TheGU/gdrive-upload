@@ -110,6 +110,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
     while response is None:
         if idle_count >= 5:
+            logger.debug('Max idle retry for upload')
             break
 
         try:
@@ -141,6 +142,11 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 idle_count = 0
 
             upload_speed = int(status.resumable_progress / (1024*(time.time() - start_time)))
+            logger.debug("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
+                        int(status.progress() * 100),
+                        status.resumable_progress,
+                        status.total_size,
+                        upload_speed))
             if show_progress:
                 print("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
                     int(status.progress() * 100),
@@ -148,6 +154,9 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                     status.total_size,
                     upload_speed), end='\r')
             last_progress = status.resumable_progress
+        else:
+            logger.debug('Not receive status from status, response = request.next_chunk()')
+            idle_count += 1
 
     if response:
         logger.info("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
