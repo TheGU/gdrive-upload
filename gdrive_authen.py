@@ -3,10 +3,12 @@ from __future__ import absolute_import
 import os
 import sys
 import httplib2
+import logging
 
 from apiclient import discovery
 from oauth2client import client as oauth_client, tools as oauth_tools, file as oauth_file
 
+logger = logging.getLogger(__name__)
 # Set scope to allow all action
 SCOPES = 'https://www.googleapis.com/auth/drive'
 # Google client secret : https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
@@ -28,11 +30,12 @@ def get_credentials(flags):
         os.makedirs(credential_dir)
     credential_path = os.path.join(credential_dir,
                                    'drive-access.json')
+    logger.debug('Get credentials : ' + credential_path)
 
     store = oauth_file.Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
-
+        logger.info('Not found credentials. Try to get new key.')
         flow = oauth_client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
         flow.user_agent = APPLICATION_NAME
         if not flags:
@@ -41,8 +44,9 @@ def get_credentials(flags):
             parser = argparse.ArgumentParser(parents=[oauth_tools.argparser])
             flags = parser.parse_args()            
         credentials = oauth_tools.run_flow(flow, store, flags)
-        print('Storing credentials to ' + credential_path)
+        logger.debug('Storing credentials to ' + credential_path)
 
+    logger.debug('Init credential success : ' + credentials)
     return credentials
 
 
@@ -53,6 +57,10 @@ def create_gdrive_service(flags=None):
         A service for api call
     """
     credentials = get_credentials(flags)
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('drive', 'v2', http=http)
+    try:
+        http = credentials.authorize(httplib2.Http())
+        service = discovery.build('drive', 'v2', http=http)
+    except Exception as e:
+        logger.error('cannot initial gdrive service : %s', e)
+        return
     return service

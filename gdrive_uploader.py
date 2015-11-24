@@ -3,8 +3,12 @@ from __future__ import absolute_import
 from __future__ import print_function
 import os
 import time
+import sys
+import logging
 
 from apiclient import errors as api_errors, http as api_http
+
+logger = logging.getLogger(__name__)
 
 
 def get_file_data(service, filename, folder_id=None):
@@ -16,7 +20,6 @@ def get_file_data(service, filename, folder_id=None):
     :return:
         file in gdrive that match condition or None
     """
-    folder_id = None
     file_data = None
     # search for folder name
     try:
@@ -30,8 +33,11 @@ def get_file_data(service, filename, folder_id=None):
         if items:
             file_data = items[0]
     except api_errors.HttpError, error:
-        print('An error occurred: %s' % error)
+        logger.error('An error occurred: %s', error)
+    except:
+        logger.error('An error occurred: %s ', sys.exc_info()[0])
 
+    logger.debug('Get file data for [%s] in [%s] : %s', filename, folder_id, file_data)
     return file_data
 
 
@@ -60,11 +66,13 @@ def get_or_create_folder(service, folder_name):
             request = service.files().insert(body=body).execute()
             folder_id = request['id']
     except api_errors.HttpError, error:
-        print('An error occurred: %s' % error)
+        logger.error('An error occurred: %s', error)
+    except:
+        logger.error('An error occurred: %s ', sys.exc_info()[0])
     return folder_id
 
 
-def upload_file(service, input_file, output_name=None, folder_name=None):
+def upload_file(service, input_file, output_name=None, folder_name=None, show_progress=False):
     """
     Upload file to gdrive using MediaFileUpload that support large file upload and resumable
     Display upload speed and progress when call this function
@@ -79,7 +87,6 @@ def upload_file(service, input_file, output_name=None, folder_name=None):
     mime_type = None
     if not ext:
         mime_type = 'application/octet-stream'
-    media = api_http.MediaFileUpload(input_file, mimetype=mime_type, resumable=True)
 
     if not output_name:
         output_name = os.path.basename(input_file)
@@ -90,25 +97,60 @@ def upload_file(service, input_file, output_name=None, folder_name=None):
         parent_id = get_or_create_folder(service, folder_name)
         body['parents'] = [{'id': parent_id}]
 
+    media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=1048576, resumable=True)
     request = service.files().insert(media_body=media, body=body)
-    response = None
 
+    logger.info("Upload : ", input_file)
     start_time = time.time()
-    print("Upload : ", input_file)
-    try:
-        # Loop to show upload progress and speed
-        while response is None:
+    status = None
+    response = None
+    last_progress = 0
+    idle_count = 0
+
+    while response is None:
+        if idle_count >= 5:
+            break
+
+        try:
+            # Loop to show upload progress and speed
             status, response = request.next_chunk()
-            if status:
-                upload_speed = int(status.resumable_progress / (1024*(time.time() - start_time)))
+        except api_errors.HttpError, error:
+            if error.resp.status in [404]:
+                # Start the upload all over again.
+                logger.error('Upload fail 404 retry all over again: %s' % error)
+                break
+            elif error.resp.status in [500, 502, 503, 504]:
+                # Call next_chunk() again, but use an exponential backoff for repeated errors.
+                logger.error('Upload fail 50X retry next_chunk: %s' % error)
+                idle_count += 1
+                time.sleep(idle_count*idle_count)
+                continue
+            else:
+                # Do not retry. Log the error and fail.
+                logger.error('Upload fail An error occur: %s' % error)
+                break
+        except:
+            logger.error('Upload fail An error occurred: %s ', sys.exc_info()[0])
+            break
+
+        if status:
+            if last_progress >= status.resumable_progress:
+                idle_count += 1
+            else:
+                idle_count = 0
+
+            upload_speed = int(status.resumable_progress / (1024*(time.time() - start_time)))
+            if show_progress:
                 print("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
                     int(status.progress() * 100),
                     status.resumable_progress,
                     status.total_size,
                     upload_speed), end='\r')
-        print()
-        print("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
-        return file
-    except api_errors.HttpError, error:
-        print('An error occur: %s' % error)
-        return None
+            last_progress = status.resumable_progress
+
+    if response:
+        logger.info("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
+        return True
+    else:
+        logger.error("Upload {} Error! -- {:,} seconds".format(input_file, time.time() - start_time))
+        return False
