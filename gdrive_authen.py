@@ -30,7 +30,7 @@ def get_credentials(flags):
         os.makedirs(credential_dir)
     credential_path = os.path.join(credential_dir,
                                    'drive-access.json')
-    logger.debug('Get credentials : ' + credential_path)
+    logger.debug('Get credentials : %s', credential_path)
 
     store = oauth_file.Storage(credential_path)
     credentials = store.get()
@@ -44,9 +44,9 @@ def get_credentials(flags):
             parser = argparse.ArgumentParser(parents=[oauth_tools.argparser])
             flags = parser.parse_args()            
         credentials = oauth_tools.run_flow(flow, store, flags)
-        logger.debug('Storing credentials to ' + credential_path)
+        logger.debug('Storing credentials to %s', credential_path)
 
-    logger.debug('Init credential success : ' + credentials)
+    logger.debug('Init credential success : %s', credentials)
     return credentials
 
 

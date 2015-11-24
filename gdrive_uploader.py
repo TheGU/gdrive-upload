@@ -97,10 +97,11 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
         parent_id = get_or_create_folder(service, folder_name)
         body['parents'] = [{'id': parent_id}]
 
+    logger.debug('Prepare file to upload [%s] mime[%s] chunk[%s] body[%s]', input_file, mime_type, 1048576, body)
     media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=1048576, resumable=True)
     request = service.files().insert(media_body=media, body=body)
 
-    logger.info("Upload : ", input_file)
+    logger.info("Upload : %s", input_file)
     start_time = time.time()
     status = None
     response = None
@@ -127,7 +128,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 continue
             else:
                 # Do not retry. Log the error and fail.
-                logger.error('Upload fail An error occur: %s' % error)
+                logger.error('Upload fail An error occur: %s', error)
                 break
         except:
             logger.error('Upload fail An error occurred: %s ', sys.exc_info()[0])
