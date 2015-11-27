@@ -1,6 +1,9 @@
 #!/usr/bin/python
 from __future__ import absolute_import
 from __future__ import print_function
+
+from .utils import time_limit, TimeoutException
+
 import os
 import time
 import sys
@@ -33,9 +36,9 @@ def get_file_data(service, filename, folder_id=None):
         if items:
             file_data = items[0]
     except api_errors.HttpError, error:
-        logger.error('An error occurred: %s', error)
+        logger.error('HTTP error in get_file_data: %s', error)
     except:
-        logger.error('An error occurred: %s ', sys.exc_info()[0])
+        logger.error('An error occurred in get_file_data: %s ', sys.exc_info()[0])
 
     logger.debug('Get file data for [%s] in [%s] : %s', filename, folder_id, file_data)
     return file_data
@@ -66,9 +69,9 @@ def get_or_create_folder(service, folder_name):
             request = service.files().insert(body=body).execute()
             folder_id = request['id']
     except api_errors.HttpError, error:
-        logger.error('An error occurred: %s', error)
+        logger.error('HTTP error in get_or_create_folder: %s', error)
     except:
-        logger.error('An error occurred: %s ', sys.exc_info()[0])
+        logger.error('An error occurred in get_or_create_folder: %s ', sys.exc_info()[0])
     return folder_id
 
 
@@ -115,7 +118,8 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
         try:
             # Loop to show upload progress and speed
-            status, response = request.next_chunk()
+            with time_limit(15):
+                status, response = request.next_chunk()
         except api_errors.HttpError, error:
             if error.resp.status in [404]:
                 # Start the upload all over again.
@@ -129,10 +133,15 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 continue
             else:
                 # Do not retry. Log the error and fail.
-                logger.error('Upload fail An error occur: %s', error)
+                logger.error('Upload fail HTTP error in next_chunk: %s', error)
                 break
+        except TimeoutException, error:
+            logger.error('Upload timeout retry next_chunk: %s' % error)
+            idle_count += 1
+            time.sleep(idle_count*idle_count)
+            continue
         except:
-            logger.error('Upload fail An error occurred: %s ', sys.exc_info()[0])
+            logger.error('Upload fail An error occurred in next_chunk: %s ', sys.exc_info()[0])
             break
 
         if status:
