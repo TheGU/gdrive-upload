@@ -59,7 +59,7 @@ def create_gdrive_service(flags=None):
     credentials = get_credentials(flags)
     try:
         http = credentials.authorize(httplib2.Http())
-        service = discovery.build('drive', 'v2', http=http)
+        service = discovery.build('drive', 'v3', http=http)
     except Exception as e:
         logger.error('cannot initial gdrive service : %s', e)
         return
