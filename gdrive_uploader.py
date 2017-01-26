@@ -2,8 +2,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-from .utils import time_limit, TimeoutException
-
 import os
 import time
 import sys
@@ -27,12 +25,12 @@ def get_file_data(service, filename, folder_id=None):
     # search for folder name
     try:
         if folder_id:
-            q = 'title="{}" and "{}" in parents'.format(filename, folder_id)
+            q = 'name="{}" and "{}" in parents'.format(filename, folder_id)
         else:
-            q = 'title="{}"'.format(filename)
+            q = 'name="{}"'.format(filename)
 
         files = service.files().list(q=q).execute()
-        items = files.get('items', [])
+        items = files.get('files', [])
         if items:
             file_data = items[0]
     except api_errors.HttpError as error:
@@ -55,20 +53,23 @@ def get_or_create_folder(service, folder_name):
     """
     folder_id = None
     # search for folder name
-    q = 'title="{}" and mimeType="application/vnd.google-apps.folder"'.format(folder_name)
+    q = 'name="{}" and trashed!=true and mimeType="application/vnd.google-apps.folder"'.format(folder_name)
     try:
         files = service.files().list(q=q).execute()
-        items = files.get('items', [])
+        items = files.get('files', [])
         if items:
             folder_id = items[0]['id']
+            logger.debug('Found folder [%s]: %s', folder_name, folder_id)
         else:
+            logger.debug('Not found folder [%s], try to create new folder', folder_name)
             body = {
-                "title": folder_name,
+                "name": folder_name,
                 "mimeType": "application/vnd.google-apps.folder"
             }
-            request = service.files().insert(body=body).execute()
+            request = service.files().create(body=body).execute()
             folder_id = request['id']
-    except api_errors.HttpError, error:
+            logger.debug('Created new folder [%s]: %s', folder_name, folder_id)
+    except api_errors.HttpError as error:
         logger.error('HTTP error in get_or_create_folder: %s', error)
     except:
         logger.error('An error occurred in get_or_create_folder: %s ', sys.exc_info()[0])
@@ -86,23 +87,22 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
     :return:
         File instance from google api or None if error occur
     """
-    filename, ext = os.path.splitext(input_file)
-    mime_type = None
-    if not ext:
-        mime_type = 'application/octet-stream'
+
+    # filename, ext = os.path.splitext(input_file)
+    mime_type = 'application/octet-stream'
 
     if not output_name:
         output_name = os.path.basename(input_file)
     body = {
-        'title': output_name,
+        'name': output_name,
     }
     if folder_name:
         parent_id = get_or_create_folder(service, folder_name)
-        body['parents'] = [{'id': parent_id}]
+        body['parents'] = [parent_id]
 
     logger.debug('Prepare file to upload [%s] mime[%s] chunk[%s] body[%s]', input_file, mime_type, 1048576, body)
     media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=1048576, resumable=True)
-    request = service.files().insert(media_body=media, body=body)
+    request = service.files().create(media_body=media, body=body)
 
     logger.info("Upload : %s", input_file)
     start_time = time.time()
@@ -117,9 +117,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
             break
 
         try:
-            # Loop to show upload progress and speed
-            with time_limit(15):
-                status, response = request.next_chunk()
+            status, response = request.next_chunk()
         except api_errors.HttpError as error:
             if error.resp.status in [404]:
                 # Start the upload all over again.
@@ -135,13 +133,8 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 # Do not retry. Log the error and fail.
                 logger.error('Upload fail HTTP error in next_chunk: %s', error)
                 break
-        except TimeoutException as error:
-            logger.error('Upload timeout retry next_chunk: %s' % error)
-            idle_count += 1
-            time.sleep(idle_count*idle_count)
-            continue
         except:
-            logger.error('Upload fail An error occurred in next_chunk: %s ', sys.exc_info()[0])
+            logger.error('Upload fail An error occurred in next_chunk: [%s] %s ', sys.exc_info()[0], sys.exc_info()[1])
             break
 
         if status:
