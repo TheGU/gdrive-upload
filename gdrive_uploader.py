@@ -35,7 +35,7 @@ def get_file_data(service, filename, folder_id=None):
         items = files.get('items', [])
         if items:
             file_data = items[0]
-    except api_errors.HttpError, error:
+    except api_errors.HttpError as error:
         logger.error('HTTP error in get_file_data: %s', error)
     except:
         logger.error('An error occurred in get_file_data: %s ', sys.exc_info()[0])
@@ -120,7 +120,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
             # Loop to show upload progress and speed
             with time_limit(15):
                 status, response = request.next_chunk()
-        except api_errors.HttpError, error:
+        except api_errors.HttpError as error:
             if error.resp.status in [404]:
                 # Start the upload all over again.
                 logger.error('Upload fail 404 retry all over again: %s' % error)
@@ -135,7 +135,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 # Do not retry. Log the error and fail.
                 logger.error('Upload fail HTTP error in next_chunk: %s', error)
                 break
-        except TimeoutException, error:
+        except TimeoutException as error:
             logger.error('Upload timeout retry next_chunk: %s' % error)
             idle_count += 1
             time.sleep(idle_count*idle_count)

@@ -3,17 +3,21 @@ from __future__ import absolute_import
 
 from oauth2client import tools as oauth_tools
 
-from gdrive_authen import create_gdrive_service
-from gdrive_uploader import upload_file
+from .gdrive_authen import create_gdrive_service
+from .gdrive_uploader import upload_file
 
 try:
     import argparse
+except ImportError:
+    argparse = None
+
+if argparse:
     parser = argparse.ArgumentParser(parents=[oauth_tools.argparser])
     parser.add_argument('-i', '--inputfile', required=True, help='Input full path filename')
     parser.add_argument('-o', '--outputfile', help='Specific output name or not set for use same name as input')
     parser.add_argument('-f', '--foldername', help='specific folder name to upload to')
     flags = parser.parse_args()
-except ImportError:
+else:
     flags = None
 
 

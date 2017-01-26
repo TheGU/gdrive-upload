@@ -57,3 +57,7 @@ docs/_build/
 target/
 /client_secret.json
 /.credentials
+
+# PyCharm
+/.idea
+/venv
