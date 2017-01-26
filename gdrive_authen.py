@@ -18,11 +18,13 @@ SERVICE_SECRET_FILE = 'service_secret.json'
 APPLICATION_NAME = 'GDrive Uploader'
 
 
-def get_credentials(flags=None, service_account=False):
+def get_credentials(flags=None, service_account=False, delegated_user=None):
     """
     Read token file from ./.credentials/drive-access.json or create one if not exist.
     Creation process will ask user to copy url that display on screen to get allow token.
     :param flags : oauth2client flags. read more [https://goo.gl/dL03yF]
+    :param service_account : set to enable service account. Default is client account that need to authen on web browser
+    :param delegated_user : if service account is True, you have choice to act as specific user. e.g. admin@example.com
     :return:
         Oauth2 credential ready for use in client
     """
@@ -37,10 +39,16 @@ def get_credentials(flags=None, service_account=False):
     store = oauth_file.Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
+        logger.info('Not found credentials. Try to get new key.')
+        logger.debug('Storing credentials to %s', credential_path)
         if service_account:
+            logger.debug('User service account')
             credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_SECRET_FILE, scopes=SCOPES)
+            if delegated_user:
+                logger.debug('Delegate service account to [%s]', delegated_user)
+                credentials = credentials.create_delegated(delegated_user)
         else:
-            logger.info('Not found credentials. Try to get new key.')
+            logger.debug('Use client account')
             flow = oauth_client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
             flow.user_agent = APPLICATION_NAME
             if not flags:
@@ -55,13 +63,16 @@ def get_credentials(flags=None, service_account=False):
     return credentials
 
 
-def create_gdrive_service(flags=None, service_account=False):
+def create_gdrive_service(flags=None, service_account=False, delegated_user=None):
     """
     Create Google API Service for Google Drive
+    :param flags : oauth2client flags. read more [https://goo.gl/dL03yF]
+    :param service_account : set to enable service account. Default is client account that need to authen on web browser
+    :param delegated_user : if service account is True, you have choice to act as specific user. e.g. admin@example.com
     :return:
         A service for api call
     """
-    credentials = get_credentials(flags=flags, service_account=service_account)
+    credentials = get_credentials(flags=flags, service_account=service_account, delegated_user=delegated_user)
     try:
         http = credentials.authorize(httplib2.Http())
         service = discovery.build('drive', 'v3', http=http, cache_discovery=False)
