@@ -28,27 +28,28 @@ def get_credentials(flags=None, service_account=False, delegated_user=None):
     :return:
         Oauth2 credential ready for use in client
     """
-    home_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    credential_dir = os.path.join(home_dir, '.credentials')
-    if not os.path.exists(credential_dir):
-        os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'drive-access.json')
-    logger.debug('Get credentials : %s', credential_path)
 
-    store = oauth_file.Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        logger.info('Not found credentials. Try to get new key.')
-        logger.debug('Storing credentials to %s', credential_path)
-        if service_account:
-            logger.debug('User service account')
-            credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_SECRET_FILE, scopes=SCOPES)
-            if delegated_user:
-                logger.debug('Delegate service account to [%s]', delegated_user)
-                credentials = credentials.create_delegated(delegated_user)
-        else:
-            logger.debug('Use client account')
+    if service_account:
+        logger.debug('User service account')
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_SECRET_FILE, scopes=SCOPES)
+        if delegated_user:
+            logger.debug('Delegate service account to [%s]', delegated_user)
+            credentials = credentials.create_delegated(delegated_user)
+    else:
+        logger.debug('Use client account')
+        home_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        credential_dir = os.path.join(home_dir, '.credentials')
+        if not os.path.exists(credential_dir):
+            os.makedirs(credential_dir)
+        credential_path = os.path.join(credential_dir,
+                                       'drive-access.json')
+        logger.debug('Get credentials : %s', credential_path)
+
+        store = oauth_file.Storage(credential_path)
+        credentials = store.get()
+        if not credentials or credentials.invalid:
+            logger.info('Not found credentials. Try to get new key.')
+            logger.debug('Storing credentials to %s', credential_path)
             flow = oauth_client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
             flow.user_agent = APPLICATION_NAME
             if not flags:
