@@ -29,14 +29,15 @@ def get_file_data(service, filename, folder_id=None):
         else:
             q = 'name="{}"'.format(filename)
 
-        files = service.files().list(q=q).execute()
+        logger.debug('Check file on gdrive: q=[%s]', q)
         items = files.get('files', [])
         if items:
+            logger.debug('Found on gdrive: %s', items)
             file_data = items[0]
     except api_errors.HttpError as error:
         logger.error('HTTP error in get_file_data: %s', error)
     except:
-        logger.error('An error occurred in get_file_data: %s ', sys.exc_info()[0])
+        logger.error('An error occurred in get_file_data: [%s] %s ', sys.exc_info()[0], sys.exc_info()[1])
 
     logger.debug('Get file data for [%s] in [%s] : %s', filename, folder_id, file_data)
     return file_data
