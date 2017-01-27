@@ -80,7 +80,7 @@ def get_or_create_folder(service, folder_name):
     return folder_id
 
 
-def upload_file(service, input_file, output_name=None, folder_name=None, show_progress=False):
+def upload_file(service, input_file, output_name=None, folder_name=None, show_progress=False, chunksize=1048576):
     """
     Upload file to gdrive using MediaFileUpload that support large file upload and resumable
     Display upload speed and progress when call this function
@@ -94,7 +94,6 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
     # filename, ext = os.path.splitext(input_file)
     mime_type = 'application/octet-stream'
-    chunksize = 1048576
 
     if os.path.isfile(input_file):
         file_size = os.path.getsize(input_file)
