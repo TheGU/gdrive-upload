@@ -37,8 +37,10 @@ def get_file_data(service, filename, folder_id=None):
             file_data = items[0]
     except api_errors.HttpError as error:
         logger.error('HTTP error in get_file_data: %s', error)
+        return 0
     except:
         logger.error('An error occurred in get_file_data: [%s] %s ', sys.exc_info()[0], sys.exc_info()[1])
+        return 0
 
     logger.debug('Get file data for [%s] in [%s] : %s', filename, folder_id, file_data)
     return file_data
@@ -74,7 +76,7 @@ def get_or_create_folder(service, folder_name):
     except api_errors.HttpError as error:
         logger.error('HTTP error in get_or_create_folder: %s', error)
     except:
-        logger.error('An error occurred in get_or_create_folder: %s ', sys.exc_info()[0])
+        logger.error('An error occurred in get_or_create_folder: [%s] %s ', sys.exc_info()[0], sys.exc_info()[1])
     return folder_id
 
 
@@ -100,7 +102,11 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
     }
     if folder_name:
         parent_id = get_or_create_folder(service, folder_name)
-        body['parents'] = [parent_id]
+        if parent_id:
+            body['parents'] = [parent_id]
+        else:
+            logger.error('No value from get_or_create_folder: %s', folder_name)
+            return
 
     logger.debug('Prepare file to upload [%s] mime[%s] chunk[%s] body[%s]', input_file, mime_type, 1048576, body)
     media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=1048576, resumable=True)
