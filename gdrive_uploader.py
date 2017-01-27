@@ -94,6 +94,13 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
     # filename, ext = os.path.splitext(input_file)
     mime_type = 'application/octet-stream'
+    chunksize = 1048576
+
+    if os.path.isfile(input_file):
+        file_size = os.path.getsize(input_file)
+    else:
+        logger.error("Error " + input_file + " : raw file not found")
+        return
 
     if not output_name:
         output_name = os.path.basename(input_file)
@@ -108,11 +115,11 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
             logger.error('No value from get_or_create_folder: %s', folder_name)
             return
 
-    logger.debug('Prepare file to upload [%s] mime[%s] chunk[%s] body[%s]', input_file, mime_type, 1048576, body)
-    media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=1048576, resumable=True)
+    logger.debug('Prepare file to upload [%s] mime[%s] chunk[%s] body[%s]', input_file, mime_type, chunksize, body)
+    media = api_http.MediaFileUpload(input_file, mimetype=mime_type, chunksize=chunksize, resumable=True)
     request = service.files().create(media_body=media, body=body)
 
-    logger.info("Upload : %s", input_file)
+    logger.info("Upload : %s, Size : %s", input_file, file_size)
     start_time = time.time()
     status = None
     response = None
