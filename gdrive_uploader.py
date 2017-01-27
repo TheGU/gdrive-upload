@@ -127,7 +127,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
     while response is None:
         if idle_count >= 5:
-            logger.debug('Max idle retry for upload')
+            logger.error('Max idle retry for upload')
             break
 
         try:
@@ -137,11 +137,11 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 # Start the upload all over again.
                 logger.error('Upload fail 404 retry all over again: %s' % error)
                 break
-            elif error.resp.status in [500, 502, 503, 504]:
+            elif error.resp.status in [403, 500, 502, 503, 504]:
                 # Call next_chunk() again, but use an exponential backoff for repeated errors.
-                logger.error('Upload fail 50X retry next_chunk: %s' % error)
+                logger.warn('Upload fail %s retry next_chunk: %s' % (error.resp.status, error))
                 idle_count += 1
-                time.sleep(idle_count*idle_count)
+                time.sleep(idle_count*idle_count*3)
                 continue
             else:
                 # Do not retry. Log the error and fail.
