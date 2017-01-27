@@ -30,6 +30,7 @@ def get_file_data(service, filename, folder_id=None):
             q = 'name="{}"'.format(filename)
 
         logger.debug('Check file on gdrive: q=[%s]', q)
+        files = service.files().list(q=q, fields='files(*)').execute()
         items = files.get('files', [])
         if items:
             logger.debug('Found on gdrive: %s', items)
