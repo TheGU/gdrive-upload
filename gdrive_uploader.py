@@ -139,10 +139,10 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                 logger.error('Upload [%s] fail http 404 retry all over again: %s' % (input_file, error))
                 break
             elif error.resp.status in [403, 500, 502, 503, 504]:
+                idle_count += 1
                 # Call next_chunk() again, but use an exponential backoff for repeated errors.
                 logger.warn('Upload [%s] fail http [%s] retry [%s] next_chunk: %s' %
                             (input_file, error.resp.status, idle_count, error))
-                idle_count += 1
                 time.sleep(idle_count*idle_count*3)
                 continue
             else:
@@ -154,6 +154,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
             idle_count += 1
             logger.warn('Upload [%s] fail [socket.error] retry [%s] next_chunk: %s' % (input_file, idle_count, error))
             time.sleep(idle_count * idle_count * 3)
+            continue
         except:
             logger.error('Upload [%s] fail An error occurred in next_chunk: [%s] %s ',
                          input_file, sys.exc_info()[0], sys.exc_info()[1])
@@ -184,7 +185,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
     if response:
         logger.info("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
-        return True
+        return response
     else:
         logger.error("Upload {} Error! -- {:,} seconds".format(input_file, time.time() - start_time))
         return False
