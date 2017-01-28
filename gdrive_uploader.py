@@ -6,6 +6,7 @@ import os
 import time
 import sys
 import logging
+import socket
 
 from apiclient import errors as api_errors, http as api_http
 
@@ -135,18 +136,22 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
         except api_errors.HttpError as error:
             if error.resp.status in [404]:
                 # Start the upload all over again.
-                logger.error('Upload fail 404 retry all over again: %s' % error)
+                logger.error('Upload fail http 404 retry all over again: %s' % error)
                 break
             elif error.resp.status in [403, 500, 502, 503, 504]:
                 # Call next_chunk() again, but use an exponential backoff for repeated errors.
-                logger.warn('Upload fail %s retry next_chunk: %s' % (error.resp.status, error))
+                logger.warn('Upload fail http [%s] retry [%s] next_chunk: %s' % (error.resp.status, idle_count, error))
                 idle_count += 1
                 time.sleep(idle_count*idle_count*3)
                 continue
             else:
                 # Do not retry. Log the error and fail.
-                logger.error('Upload fail HTTP error in next_chunk: %s', error)
+                logger.error('Upload fail http [%s] error in next_chunk: %s', (error.resp.status, error))
                 break
+        except socket.error as error:
+            idle_count += 1
+            logger.warn('Upload fail [socket.error] retry [%s] next_chunk: %s' % (idle_count, error))
+            time.sleep(idle_count * idle_count * 3)
         except:
             logger.error('Upload fail An error occurred in next_chunk: [%s] %s ', sys.exc_info()[0], sys.exc_info()[1])
             break
