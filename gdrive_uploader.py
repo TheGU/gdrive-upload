@@ -127,7 +127,7 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
     idle_count = 0
 
     while response is None:
-        if idle_count >= 5:
+        if idle_count >= 10:
             logger.error('Max idle retry for upload')
             break
 
@@ -162,17 +162,17 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
 
         if status:
             if last_progress >= status.resumable_progress:
-                idle_count += 1
+                logger.warn('Upload [%s] retry [%s] next_chunk: No progress from last chunk' % (input_file, idle_count))
             else:
                 idle_count = 0
 
-            upload_speed = int(status.resumable_progress / (1024*(time.time() - start_time)))
-            logger.debug("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
-                        int(status.progress() * 100),
-                        status.resumable_progress,
-                        status.total_size,
-                        upload_speed))
             if show_progress:
+                upload_speed = int(status.resumable_progress / (1024*(time.time() - start_time)))
+                logger.debug("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
+                            int(status.progress() * 100),
+                            status.resumable_progress,
+                            status.total_size,
+                            upload_speed))                
                 print("Uploaded {}% - ({:,}/{:,}) - Avg {:,} Kps".format(
                     int(status.progress() * 100),
                     status.resumable_progress,
@@ -180,8 +180,8 @@ def upload_file(service, input_file, output_name=None, folder_name=None, show_pr
                     upload_speed), end='\r')
             last_progress = status.resumable_progress
         else:
-            logger.debug('Not receive status from status, response = request.next_chunk()')
             idle_count += 1
+            logger.warn('Upload [%s] retry [%s] next_chunk: Not receive status from status, response = request.next_chunk()' % (input_file, idle_count))
 
     if response:
         logger.info("Upload {} Complete! -- {:,} seconds".format(input_file, time.time() - start_time))
