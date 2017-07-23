@@ -34,10 +34,10 @@ For example:
 python upload.py -i /path/to/file/image.png -o new-image-name.png -f foldername
 ```
 __Option__
-'-i <file path>' : full path or relative path to source file to upload
-'-o <file name>' : [Optional] target filename on gdrive, if none, use same name as source filename
-'-f <folder name>' : [Optional] Set target folder name (from root) to store file in. If not exist, this folder will create under root folder on gdrive. if none, store on root folder
-'-s' : [Optional] Call this flag if you want to use [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) instead of user account. If this flag is set you must have service account store in file `service_secret.json` for script to call.
+'-i <file path>' : full path or relative path to source file to upload  
+'-o <file name>' : [Optional] target filename on gdrive, if none, use same name as source filename  
+'-f <folder name>' : [Optional] Set target folder name (from root) to store file in. If not exist, this folder will create under root folder on gdrive. if none, store on root folder  
+'-s' : [Optional] Call this flag if you want to use [service account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount) instead of user account. If this flag is set you must have service account store in file `service_secret.json` for script to call.  
 
 ##### Run for the first time
 If it run for the first time, it will show you an url to obtain key to create token to access Google drive. The script will auto create local server to intercept code to create token. 
