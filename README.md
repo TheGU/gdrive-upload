@@ -33,7 +33,8 @@ For example:
 ```
 python upload.py -i /path/to/file/image.png -o new-image-name.png -f foldername
 ```
-__Option__
+
+##### Option  
 '-i <file path>' : full path or relative path to source file to upload  
 '-o <file name>' : [Optional] target filename on gdrive, if none, use same name as source filename  
 '-f <folder name>' : [Optional] Set target folder name (from root) to store file in. If not exist, this folder will create under root folder on gdrive. if none, store on root folder  
