@@ -51,6 +51,7 @@ def get_credentials(flags=None, service_account=False, delegated_user=None):
             logger.info('Not found credentials. Try to get new key.')
             logger.debug('Storing credentials to %s', credential_path)
             flow = oauth_client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+            flow.params['access_type'] = 'offline'  # offline access
             flow.user_agent = APPLICATION_NAME
             if not flags:
                 # if function call with non-implement flags, force to use default flags for oauth2client api

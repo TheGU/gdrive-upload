@@ -3,8 +3,8 @@ from __future__ import absolute_import
 
 from oauth2client import tools as oauth_tools
 
-from .gdrive_authen import create_gdrive_service
-from .gdrive_uploader import upload_file
+from gdrive_upload.gdrive_authen import create_gdrive_service
+from gdrive_upload.gdrive_uploader import upload_file
 
 try:
     import argparse
